@@ -94,7 +94,4 @@ fn is_address_in_range(address: Ipv4Addr, start_address: Ipv4Addr, end_address: 
     start_address_u32 <= address_u32 && address_u32 <= end_address_u32
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
-#[test]
-fn test_ipv4_address_space() {}
