@@ -1,3 +1,5 @@
+use std::net::Ipv4Addr;
+
 pub fn address_class(address: Ipv4Addr) -> &'static str {
     match address.octets()[0] {
         0..=127 => "Class A",
@@ -26,4 +28,9 @@ pub fn address_space(address: Ipv4Addr) -> &'static str {
     } else {
         "Internet"
     }
+}
+
+pub fn format_ipv4_to_binary(address: Ipv4Addr) -> String {
+    let [a, b, c, d] = address.octets();
+    format!("{a:08b}.{b:08b}.{c:08b}.{d:08b}")
 }

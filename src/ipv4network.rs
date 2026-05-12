@@ -1,17 +1,31 @@
-use std::fmt;
 use std::net::Ipv4Addr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ipv4Network {
     address: Ipv4Addr,
+    subnetmask: Ipv4Addr,
     prefix: u8,
 }
 
 impl Ipv4Network {
-    pub fn new(address: Ipv4Addr, prefix: u8) -> Self {
+    pub fn new_from_prefix(address: Ipv4Addr, prefix: u8) -> Self {
         assert!(prefix <= 32, "prefix must be between 0 and 32");
 
-        Self { address, prefix }
+        Self {
+            address,
+            subnetmask: Self::subnetmask_from_prefix(prefix),
+            prefix,
+        }
+    }
+
+    pub fn new_from_mask(address: Ipv4Addr, subnetmask: Ipv4Addr) -> Self {
+        let prefix = Self::prefix_from_mask(subnetmask);
+
+        Self {
+            address,
+            subnetmask,
+            prefix,
+        }
     }
 
     pub fn address(&self) -> Ipv4Addr {
@@ -22,22 +36,22 @@ impl Ipv4Network {
         self.prefix
     }
 
-    pub fn mask(&self) -> Ipv4Addr {
-        Ipv4Addr::from(mask_from_prefix(self.prefix))
+    pub fn subnetmask(&self) -> Ipv4Addr {
+        self.subnetmask
     }
 
     pub fn network(&self) -> Ipv4Addr {
-        let address = u32::from(self.address);
-        let mask = mask_from_prefix(self.prefix);
+        let address_u32 = u32::from(self.address);
+        let submask_u32 = u32::from(self.subnetmask);
 
-        Ipv4Addr::from(address & mask)
+        Ipv4Addr::from(address_u32 & submask_u32)
     }
 
     pub fn broadcast(&self) -> Ipv4Addr {
-        let network = u32::from(self.network());
-        let mask = mask_from_prefix(self.prefix);
+        let network_u32 = u32::from(self.network());
+        let submask_u32 = u32::from(self.subnetmask);
 
-        Ipv4Addr::from(network | !mask)
+        Ipv4Addr::from(network_u32 | !submask_u32)
     }
 
     pub fn first_host(&self) -> Option<Ipv4Addr> {
@@ -77,16 +91,24 @@ impl Ipv4Network {
 
         let mut subnets = Vec::new();
         for i in 0..subnet_count {
-            subnets.push(Ipv4Network::new(Ipv4Addr::from(start + i * subnet_size), split_prefix));
+            subnets.push(Ipv4Network::new_from_prefix(
+                Ipv4Addr::from(start + i * subnet_size),
+                split_prefix,
+            ));
         }
         subnets
     }
-}
 
-fn mask_from_prefix(prefix: u8) -> u32 {
-    if prefix == 0 {
-        0
-    } else {
-        u32::MAX << (32 - prefix)
+    fn subnetmask_from_prefix(prefix: u8) -> Ipv4Addr {
+        if prefix == 0 {
+            Ipv4Addr::from(0)
+        } else {
+            Ipv4Addr::from(u32::MAX << (32 - prefix))
+        }
+    }
+
+    fn prefix_from_mask(mask: Ipv4Addr) -> u8 {
+        let mask_u32 = u32::from(mask);
+        32 - mask_u32.trailing_zeros() as u8
     }
 }
